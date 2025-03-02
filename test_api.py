@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client import Client
-from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType
+from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, ValidationMethod
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.api.default import post_mpic
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.types import Response
 from pprint import pp
@@ -74,7 +74,96 @@ class TestDeployedMpicApi:
             assert caa_response.status_code == 200
             assert caa_response.parsed.is_valid is False
 
+    # NOTE: Cases where there is no IPv6 connectivity.
+    # This case is handled in a compliant manner as it is treated as a lookup failure.
+    # The test for proper communication with an IPv6 nameserver can be enabled with the following additional parameter to the list below.
+    # ('ipv6only.caatestsuite.com', 'Tests handling of record at IPv6-only authoritative name server', False),
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, is_wildcard_domain', [
+        ('deny.basic.caatestsuite.com', 'Tests handling of 0 issue "caatestsuite.com"', False),
+        ('uppercase-deny.basic.caatestsuite.com', 'Tests handling of uppercase issue tag (0 ISSUE "caatestsuite.com")', False),
+        ('mixedcase-deny.basic.caatestsuite.com', 'Tests handling of mixed case issue tag (0 IsSuE "caatestsuite.com")', False),
+        ('big.basic.caatestsuite.com', 'Tests handling of gigantic (1001) CAA record set (0 issue "caatestsuite.com")', False),
+        ('sub1.deny.basic.caatestsuite.com', 'Tests basic tree climbing when CAA record is at parent domain', False),
+        ('sub2.sub1.deny.basic.caatestsuite.com', 'Tests tree climbing when CAA record is at grandparent domain', False),
+        ('deny.basic.caatestsuite.com', 'Tests handling of issue property for a wildcard domain', True),
+        ('deny-wild.basic.caatestsuite.com', 'Tests handling of issuewild for a wildcard domain', True),
+        ('cname-deny.basic.caatestsuite.com', 'Tests handling of CNAME, where CAA record is at CNAME target', False),
+        ('cname-cname-deny.basic.caatestsuite.com', 'Tests handling of CNAME chain, where CAA record is at ultimate target', False),
+        ('sub1.cname-deny.basic.caatestsuite.com', 'Tests handling of CNAME, where parent is CNAME and CAA record is at target', False),
+        ('permit.basic.caatestsuite.com', 'Tests acceptance when name contains a permissible CAA record set', False),
+        ('deny.permit.basic.caatestsuite.com', 'Tests acceptance on a CAA record set', False),
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_is_valid_true_for_valid_tests_in_caa_test_suite_when_caa_domain_is_caatestsuite_com(
+        self, domain_or_ip_target, purpose_of_test, is_wildcard_domain
+    ):
+        async with Client(base_url=API_URL) as client:
+            print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+            if is_wildcard_domain:
+                domain_or_ip_target = "*." + domain_or_ip_target
+            request = CAAParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.CAA,
+                caa_check_parameters=CaaCheckParameters(
+                    certificate_type=CaaCheckParametersCertificateType.TLS_SERVER, caa_domains=["caatestsuite.com", "example.com"]
+                ),
+            )
+            caa_response: Response[CAAResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert caa_response.status_code == 200
+            assert caa_response.parsed.is_valid is True
+    
 
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test', [
+        ('dns-01.integration-testing.open-mpic.org', 'Standard proper dns-01 test'),
+        ('dns-01-multi.integration-testing.open-mpic.org', 'Proper dns-01 test with multiple TXT records'),
+        ('dns-01-cname.integration-testing.open-mpic.org', 'Proper dns-01 test with CNAME')
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_given_valid_dns_01_validation(self, domain_or_ip_target, purpose_of_test):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=AcmeDNS01ValidationParameters(
+                    key_authorization_hash="7FwkJPsKf-TH54wu4eiIFA3nhzYaevsL7953ihy-tpo",
+                    validation_method=ValidationMethod.ACME_DNS_01
+                ),
+            )
+
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            assert response.parsed.is_valid is True
+    
+    
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test', [
+        ('dns-01-leading-whitespace.integration-testing.open-mpic.org', 'leading whitespace'),
+        ('dns-01-trailing-whitespace.integration-testing.open-mpic.org', 'trailing'),
+        ('dns-01-nxdomain.integration-testing.open-mpic.org', 'NXDOMAIN')
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_is_valid_false_given_invalid_dns_01_validation(
+        self, domain_or_ip_target, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=AcmeDNS01ValidationParameters(
+                    key_authorization_hash="7FwkJPsKf-TH54wu4eiIFA3nhzYaevsL7953ihy-tpo",
+                    validation_method=ValidationMethod.ACME_DNS_01
+                ),
+            )
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            assert response.parsed.is_valid is False
 
 
 async def main(args):
