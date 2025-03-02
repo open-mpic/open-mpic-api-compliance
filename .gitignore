@@ -1,3 +1,8 @@
+venv/
+.vscode/
+
+open-multi-perspective-issuance-corroboration-ap-iv-2-spec-client/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
