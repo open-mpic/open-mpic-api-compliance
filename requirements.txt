@@ -1,0 +1,4 @@
+openapi-python-client
+poetry
+pytest
+pytest-asyncio
