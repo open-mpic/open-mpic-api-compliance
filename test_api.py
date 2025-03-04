@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client import Client
-from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, ValidationMethod
+from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, AcmeHTTP01ValidationParameters, ValidationMethod
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.api.default import post_mpic
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.types import Response
 from pprint import pp
@@ -164,6 +164,34 @@ class TestDeployedMpicApi:
             response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
             assert response.status_code == 200
             assert response.parsed.is_valid is False
+
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, token, key_authorization', [
+        ('integration-testing.open-mpic.org', 'Standard http-01 test', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"),
+        ('integration-testing.open-mpic.org', 'Redirect 302 http-01 test', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oB", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs")
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_given_valid_http_01_validation(
+        self, domain_or_ip_target, purpose_of_test, token, key_authorization
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=AcmeHTTP01ValidationParameters(
+                    key_authorization=key_authorization,
+                    token=token, 
+                    validation_method=ValidationMethod.ACME_HTTP_01
+                    )
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            #assert response.parsed.is_valid is True
 
 
 async def main(args):
