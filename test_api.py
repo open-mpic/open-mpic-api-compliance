@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client import Client
-from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, AcmeHTTP01ValidationParameters, ValidationMethod
+from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, AcmeHTTP01ValidationParameters, ValidationMethod, WebsiteChangeValidationParameters, DNSChangeValidationParameters, DNSChangeValidationParametersDnsRecordType
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.api.default import post_mpic
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.types import Response
 from pprint import pp
@@ -192,6 +192,90 @@ class TestDeployedMpicApi:
             assert response.status_code == 200
             #pp(response.content)
             assert response.parsed.is_valid is True
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, token, key_authorization', [
+        ('integration-testing.open-mpic.org', 'Failed http-01 test', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9XZ"),
+        ('integration-testing.open-mpic.org', 'Failed 302 http-01 test', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oB", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9XZ"),
+        ('integration-testing.open-mpic.org', '404 token', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oZ", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9XZ")
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_is_valid_false_given_invalid_http_01_validation(
+        self, domain_or_ip_target, purpose_of_test, token, key_authorization
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=AcmeHTTP01ValidationParameters(
+                    key_authorization=key_authorization,
+                    token=token, 
+                    validation_method=ValidationMethod.ACME_HTTP_01
+                    )
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is False
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, http_token_path, challenge_value', [
+        ('integration-testing.open-mpic.org', 'Valid website change v2 challenge', 'validation-doc.txt', 'test-validation'),
+        ('integration-testing.open-mpic.org', 'Valid 302 website change v2 challenge', 'validation-doc-redirect.txt', "test-validation-redirect")
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_given_valid_website_change_validation(
+        self, domain_or_ip_target, purpose_of_test, http_token_path, challenge_value
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=WebsiteChangeValidationParameters(
+                    http_token_path=http_token_path, challenge_value=challenge_value,
+                    validation_method=ValidationMethod.WEBSITE_CHANGE
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is True
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, dns_record_type, challenge_value, purpose_of_test', [
+        ('dns-change-txt.integration-testing.open-mpic.org', DNSChangeValidationParametersDnsRecordType.TXT, "1234567890abcdefg.", 'standard TXT dns change'),
+        ('dns-change-cname.integration-testing.open-mpic.org', DNSChangeValidationParametersDnsRecordType.CNAME, "1234567890abcdefg.", 'standard CNAME dns change'),
+        ('dns-change-caa.integration-testing.open-mpic.org', DNSChangeValidationParametersDnsRecordType.CAA, '1234567890abcdefg.', 'standard CAA dns change'),
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_given_valid_dns_change_validation(
+        self, domain_or_ip_target, dns_record_type, challenge_value, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=DNSChangeValidationParameters(
+                    challenge_value=challenge_value, dns_record_type=dns_record_type, dns_name_prefix="",
+                    validation_method=ValidationMethod.DNS_CHANGE
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is True
+
+
+
 
 async def main(args):
     print(f"Running basic test. Ryn \"pytest\" to run the full test file.")
