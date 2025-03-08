@@ -197,7 +197,8 @@ class TestDeployedMpicApi:
     @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, token, key_authorization', [
         ('integration-testing.open-mpic.org', 'Failed http-01 test', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9XZ"),
         ('integration-testing.open-mpic.org', 'Failed 302 http-01 test', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oB", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9XZ"),
-        ('integration-testing.open-mpic.org', '404 token', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oZ", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9XZ")
+        ('integration-testing.open-mpic.org', '404 token', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oZ", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9XZ"),
+        ('integration-testing.open-mpic.org', 'Failed http-01, bad redirect', "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oC", "evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"),
     ])
     # fmt: on
     @pytest.mark.asyncio
@@ -246,6 +247,32 @@ class TestDeployedMpicApi:
             assert response.status_code == 200
             #pp(response.content)
             assert response.parsed.is_valid is True
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, http_token_path, challenge_value', [
+        ('integration-testing.open-mpic.org', 'Website change v2 challenge bad port redirect', 'validation-doc-bad-port-redirect.txt', 'test-validation-redirect')
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_is_valid_false_given_invalid_website_change_validation(
+        self, domain_or_ip_target, purpose_of_test, http_token_path, challenge_value
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=WebsiteChangeValidationParameters(
+                    http_token_path=http_token_path, challenge_value=challenge_value,
+                    validation_method=ValidationMethod.WEBSITE_CHANGE
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is False
+
 
     # fmt: off
     @pytest.mark.parametrize('domain_or_ip_target, dns_record_type, challenge_value, purpose_of_test', [
