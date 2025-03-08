@@ -191,8 +191,7 @@ class TestDeployedMpicApi:
             response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
             assert response.status_code == 200
             #pp(response.content)
-            #assert response.parsed.is_valid is True
-
+            assert response.parsed.is_valid is True
 
 async def main(args):
     print(f"Running basic test. Ryn \"pytest\" to run the full test file.")
