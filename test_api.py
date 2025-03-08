@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client import Client
-from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, AcmeHTTP01ValidationParameters, ValidationMethod, WebsiteChangeValidationParameters, DNSChangeValidationParameters, DNSChangeValidationParametersDnsRecordType
+from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, AcmeHTTP01ValidationParameters, ValidationMethod, WebsiteChangeValidationParameters, DNSChangeValidationParameters, DNSChangeValidationParametersDnsRecordType, BaseDNSChangeValidationParameters
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.api.default import post_mpic
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.types import Response
 from pprint import pp
@@ -302,6 +302,116 @@ class TestDeployedMpicApi:
             assert response.parsed.is_valid is True
 
 
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, challenge_value, purpose_of_test', [
+        ('dns-phone-txt.integration-testing.open-mpic.org', "+1-123-456-7890", 'standard TXT contact phone'),
+        ('dns-phone-cname-txt.integration-testing.open-mpic.org', "+1-123-456-7890", 'CNAME TXT contact phone'),
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_given_valid_contact_phone_txt_validation(
+        self, domain_or_ip_target, challenge_value, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=BaseDNSChangeValidationParameters(
+                    challenge_value=challenge_value,
+                    validation_method=ValidationMethod.CONTACT_PHONE_TXT
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is True
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, challenge_value, purpose_of_test', [
+        ('dns-phone-txt.integration-testing.open-mpic.org', "+1-123-456-7891", 'standard invalid TXT contact phone'),
+        ('dns-phone-cname-txt.integration-testing.open-mpic.org', "+1-123-456-7891", 'CNAME invalid TXT contact phone'),
+        ('dns-phone-txt-whitespace.integration-testing.open-mpic.org', "+1-123-456-7890", 'CNAME invalid TXT contact phone'),
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_is_valid_false_given_invalid_contact_phone_txt_validation(
+        self, domain_or_ip_target, challenge_value, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=BaseDNSChangeValidationParameters(
+                    challenge_value=challenge_value,
+                    validation_method=ValidationMethod.CONTACT_PHONE_TXT
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is False
+
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, challenge_value, purpose_of_test', [
+        ('dns-email-txt.integration-testing.open-mpic.org', "testadmin.email.txt@example.com", 'standard TXT contact email'),
+        ('dns-email-txt-cname.integration-testing.open-mpic.org', "testadmin.cname.target@example.com", 'CNAME TXT contact email'),
+        
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_given_valid_contact_email_txt_validation(
+        self, domain_or_ip_target, challenge_value, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=BaseDNSChangeValidationParameters(
+                    challenge_value=challenge_value,
+                    validation_method=ValidationMethod.CONTACT_EMAIL_TXT
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is True
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, challenge_value, purpose_of_test', [
+        ('dns-email-txt.integration-testing.open-mpic.org', "testadmin2.email.txt@example.com", 'standard invalid TXT contact email'),
+        ('dns-email-txt-cname.integration-testing.open-mpic.org', "testadmin2.cname.target@example.com", 'CNAME invalid TXT contact email'),
+        ('dns-email-txt-whitespace.integration-testing.open-mpic.org', "testadmin.email.txt.whitespace@example.com", 'whitespace invalid TXT contact email'),
+        ('dns-email-txt-null-char.integration-testing.open-mpic.org', "testadmin.email.txt.null.char@example.com", 'null char invalid TXT contact email'),
+        ('dns-email-txt-junk.integration-testing.open-mpic.org', "testadmin.email.txt.junk@example.com", 'junk invalid TXT contact email'),
+        
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_is_valid_false_given_invalid_contact_email_txt_validation(
+        self, domain_or_ip_target, challenge_value, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=BaseDNSChangeValidationParameters(
+                    challenge_value=challenge_value,
+                    validation_method=ValidationMethod.CONTACT_EMAIL_TXT
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is False
 
 
 async def main(args):
