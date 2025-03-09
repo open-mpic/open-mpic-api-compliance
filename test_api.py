@@ -414,6 +414,110 @@ class TestDeployedMpicApi:
             assert response.parsed.is_valid is False
 
 
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, challenge_value, purpose_of_test', [
+        ('contact-email-caa.integration-testing.open-mpic.org', "caa.contactemail@example.com", 'standard CAA contact email'),
+        ('contact-email-caa-critical.integration-testing.open-mpic.org', "caa.contactemail@example.com", 'critical CAA contact email'),
+        ('sub.contact-email-caa.integration-testing.open-mpic.org', "caa.contactemail@example.com", 'subdomain CAA contact email'),
+        ('nxsub.sub.contact-email-caa.integration-testing.open-mpic.org', "caa.contactemail@example.com", 'nxdomain below subdomain CAA contact email'),
+        ('contact-email-caa-cname.integration-testing.open-mpic.org', "caa.contactemail@example.com", 'CNAME CAA contact email'),
+        ('contact-email-caa-multi.integration-testing.open-mpic.org', "caa1.contactemail@example.com", 'multi-record CAA contact email'),
+        
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_is_valid_true_given_valid_contact_email_caa_validation(
+        self, domain_or_ip_target, challenge_value, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=BaseDNSChangeValidationParameters(
+                    challenge_value=challenge_value,
+                    validation_method=ValidationMethod.CONTACT_EMAIL_CAA
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is True
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, challenge_value, purpose_of_test', [
+        ('contact-email-caa.integration-testing.open-mpic.org', "caa.contactemail1@example.com", 'standard invalid CAA contact email'),
+        ('contact-email-caa-critical.integration-testing.open-mpic.org', "caa.contactemail1@example.com", 'critical invalid CAA contact email'),
+        ('sub.contact-email-caa.integration-testing.open-mpic.org', "caa.contactemail1@example.com", 'subdomain invalid CAA contact email'),
+        ('nxsub.sub.contact-email-caa.integration-testing.open-mpic.org', "caa.contactemail1@example.com", 'nxdomain below subdomain invalid CAA contact email'),
+        ('contact-email-caa-cname.integration-testing.open-mpic.org', "caa.contactemail1@example.com", 'CNAME invalid CAA contact email'),
+        ('contact-email-caa-multi.integration-testing.open-mpic.org', "caa1.contactemail1@example.com", 'multi-record invalid CAA contact email'),
+        ('contact-email-caa-whitespace.integration-testing.open-mpic.org', "caa.contactemail@example.com", 'whitespace invalid CAA contact email'),
+        ('contact-email-caa-null.integration-testing.open-mpic.org', "caa.contactemail@example.com", 'null char invalid CAA contact email'),
+        ('contact-email-no-record-set.integration-testing.open-mpic.org', "caa.contactemail@example.com", 'no record set invalid CAA contact email'),
+        
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_is_valid_false_given_invalid_contact_email_caa_validation(
+        self, domain_or_ip_target, challenge_value, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=BaseDNSChangeValidationParameters(
+                    challenge_value=challenge_value,
+                    validation_method=ValidationMethod.CONTACT_EMAIL_CAA
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is False
+
+
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, challenge_value, is_valid, purpose_of_test', [
+        ('contact-phone-caa.integration-testing.open-mpic.org', "+1-123-456-7890", True, 'standard valid CAA contact phone'),
+        ('contact-phone-caa-multi.integration-testing.open-mpic.org', "+1-123-456-7890", True, 'multi valid CAA contact phone'),
+        ('contact-phone-caa-critical.integration-testing.open-mpic.org', "+1-123-456-7890", True, 'critical valid CAA contact phone'),
+        ('contact-phone-caa.integration-testing.open-mpic.org', "+1-123-456-7891", False, 'standard invalid CAA contact phone'),
+        ('contact-phone-caa-multi.integration-testing.open-mpic.org', "+1-123-456-7891", False, 'multi invalid CAA contact phone'),
+        ('contact-phone-caa-critical.integration-testing.open-mpic.org', "+1-123-456-7891", False, 'critical invalid CAA contact phone'),
+        ('contact-phone-caa-whitespace.integration-testing.open-mpic.org', "+1-123-456-7890", False, 'whitespace invalid CAA contact phone'),
+        
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_given_contact_phone_caa_validation(
+        self, domain_or_ip_target, challenge_value, is_valid, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=BaseDNSChangeValidationParameters(
+                    challenge_value=challenge_value,
+                    validation_method=ValidationMethod.CONTACT_PHONE_CAA
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid == is_valid
+
+
+
+
+
+
 async def main(args):
     print(f"Running basic test. Ryn \"pytest\" to run the full test file.")
     print(args.url)
