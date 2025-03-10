@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client import Client
-from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, AcmeHTTP01ValidationParameters, ValidationMethod, WebsiteChangeValidationParameters, DNSChangeValidationParameters, DNSChangeValidationParametersDnsRecordType, BaseDNSChangeValidationParameters
+from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import DCVResponse, DCVParams, CAAParams, CAAResponse, CaaCheckParameters, CheckType, CaaCheckParametersCertificateType, AcmeDNS01ValidationParameters, AcmeHTTP01ValidationParameters, ValidationMethod, WebsiteChangeValidationParameters, DNSChangeValidationParameters, DNSChangeValidationParametersDnsRecordType, BaseDNSChangeValidationParameters, IpAddressValidationParameters, IpAddressValidationParametersDnsRecordType
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.api.default import post_mpic
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.types import Response
 from pprint import pp
@@ -513,6 +513,43 @@ class TestDeployedMpicApi:
             #pp(response.content)
             assert response.parsed.is_valid == is_valid
 
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, challenge_value, record_type, is_valid, purpose_of_test', [
+        ('ip-address.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, True, 'standard valid IPv4'),
+        ('ip-address-cname.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, True, 'valid cname IPv4'),
+        ('ip-address-multi.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, True, 'valid multi IPv4'),
+        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860::8888", IpAddressValidationParametersDnsRecordType.AAAA, True, 'standard valid IPv6'),
+        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:00:000:0000:8888", IpAddressValidationParametersDnsRecordType.AAAA, True, 'expanded notation valid valid IPv6'),
+        
+        ('ip-address.integration-testing.open-mpic.org', "1.2.3.5", IpAddressValidationParametersDnsRecordType.A, False, 'standard invalid IPv4'),
+        ('ip-address-nxdomain.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, False, 'nxdomain invalid IPv4'),
+        ('contact-phone-caa.integration-testing.open-mpic.org', "1.2.3.4",  IpAddressValidationParametersDnsRecordType.A, False, 'no record type invalid invalid IPv4'),
+        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860::8889", IpAddressValidationParametersDnsRecordType.AAAA, False, 'standard invalid IPv6'),
+        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:0:0:0:0:8889", IpAddressValidationParametersDnsRecordType.AAAA, False, 'bad IPv6 notation too many octets'),
+        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:0:0:00000:8889", IpAddressValidationParametersDnsRecordType.AAAA, False, 'bad IPv6 notation too many zeros'),
+        ('ip-address.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.AAAA, False, 'wrong address type v4 in AAAA'),
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_given_ip_address_validation(
+        self, domain_or_ip_target, challenge_value, record_type: IpAddressValidationParametersDnsRecordType, is_valid, purpose_of_test
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=IpAddressValidationParameters(
+                    challenge_value=challenge_value,
+                    validation_method=ValidationMethod.IP_ADDRESS,
+                    dns_record_type=record_type
+                ),
+            )
+            pp(request.to_dict())
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid == is_valid
 
 
 
