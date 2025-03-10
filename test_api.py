@@ -196,6 +196,37 @@ class TestDeployedMpicApi:
     
 
     # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, caa_domain_list, is_valid, purpose_of_test', [
+        ('smime-standard.integration-testing.open-mpic.org', ["example-ca.example.com"], True, 'standard valid smime CAA'),
+        ('contact-phone-caa.integration-testing.open-mpic.org', ["example-ca.example.com"], True, 'smime CAA not found' ),
+        ('dns-phone-txt.integration-testing.open-mpic.org', ["example-ca.example.com"], True, 'smime: no CAA found' ),
+        ('smime-with-issue.integration-testing.open-mpic.org', ["example-ca2.example.com"], True, 'smime and issue CAA' ),
+        
+        ('smime-standard.integration-testing.open-mpic.org', ["example-ca1.example.com"], False, 'standard invalid smime CAA'),
+        ('smime-with-issue.integration-testing.open-mpic.org', ["example-ca1.example.com"], False, 'smime and issue CAA invalid: issue tag match but not issuemail' ),
+        
+    ])
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_200_for_smime_tests(
+        self, domain_or_ip_target, caa_domain_list, is_valid, purpose_of_test
+    ):
+        async with Client(base_url=API_URL) as client:
+            print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+            request = CAAParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.CAA,
+                caa_check_parameters=CaaCheckParameters(
+                    certificate_type=CaaCheckParametersCertificateType.S_MIME, caa_domains=caa_domain_list
+                ),
+            )
+            caa_response: Response[CAAResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            pp(caa_response.parsed)
+            assert caa_response.status_code == 200
+            assert caa_response.parsed.is_valid == is_valid
+    
+
+    # fmt: off
     @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test', [
         ('dns-01.integration-testing.open-mpic.org', 'Standard proper dns-01 test'),
         ('dns-01-multi.integration-testing.open-mpic.org', 'Proper dns-01 test with multiple TXT records'),
