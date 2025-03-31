@@ -664,7 +664,7 @@ class TestDeployedMpicApi:
 
 
 async def main(args):
-    print(f'Running basic test. Ryn "pytest" to run the full test file.')
+    print(f'Running basic test. Run "pytest" to run the full test file.')
     print(args.url)
     client = Client(base_url=args.url)
     async with client as client:
