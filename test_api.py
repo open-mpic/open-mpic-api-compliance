@@ -630,7 +630,7 @@ class TestDeployedMpicApi:
         ('ip-address-cname.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, True, 'valid cname IPv4'),
         ('ip-address-multi.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, True, 'valid multi IPv4'),
         ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860::8888", IpAddressValidationParametersDnsRecordType.AAAA, True, 'standard valid IPv6'),
-        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:00:000:0000:8888", IpAddressValidationParametersDnsRecordType.AAAA, True, 'expanded notation valid valid IPv6'),
+        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:00:000:0000:8888", IpAddressValidationParametersDnsRecordType.AAAA, True, 'expanded notation valid IPv6'),
         
         ('ip-address.integration-testing.open-mpic.org', "1.2.3.5", IpAddressValidationParametersDnsRecordType.A, False, 'standard invalid IPv4'),
         ('ip-address-nxdomain.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, False, 'nxdomain invalid IPv4'),
