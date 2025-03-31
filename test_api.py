@@ -630,11 +630,11 @@ class TestDeployedMpicApi:
         ('ip-address-cname.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, True, 'valid cname IPv4'),
         ('ip-address-multi.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, True, 'valid multi IPv4'),
         ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860::8888", IpAddressValidationParametersDnsRecordType.AAAA, True, 'standard valid IPv6'),
-        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:00:000:0000:8888", IpAddressValidationParametersDnsRecordType.AAAA, True, 'expanded notation valid valid IPv6'),
+        ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:00:000:0000:8888", IpAddressValidationParametersDnsRecordType.AAAA, True, 'expanded notation valid IPv6'),
         
         ('ip-address.integration-testing.open-mpic.org', "1.2.3.5", IpAddressValidationParametersDnsRecordType.A, False, 'standard invalid IPv4'),
         ('ip-address-nxdomain.integration-testing.open-mpic.org', "1.2.3.4", IpAddressValidationParametersDnsRecordType.A, False, 'nxdomain invalid IPv4'),
-        ('contact-phone-caa.integration-testing.open-mpic.org', "1.2.3.4",  IpAddressValidationParametersDnsRecordType.A, False, 'no record type invalid invalid IPv4'),
+        ('contact-phone-caa.integration-testing.open-mpic.org', "1.2.3.4",  IpAddressValidationParametersDnsRecordType.A, False, 'no record type invalid IPv4'),
         ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860::8889", IpAddressValidationParametersDnsRecordType.AAAA, False, 'standard invalid IPv6'),
         ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:0:0:0:0:8889", IpAddressValidationParametersDnsRecordType.AAAA, False, 'bad IPv6 notation too many octets'),
         ('ip-address-v6.integration-testing.open-mpic.org', "2001:4860:4860:0:0:0:00000:8889", IpAddressValidationParametersDnsRecordType.AAAA, False, 'bad IPv6 notation too many zeros'),
@@ -664,7 +664,7 @@ class TestDeployedMpicApi:
 
 
 async def main(args):
-    print(f'Running basic test. Ryn "pytest" to run the full test file.')
+    print(f'Running basic test. Run "pytest" to run the full test file.')
     print(args.url)
     client = Client(base_url=args.url)
     async with client as client:
