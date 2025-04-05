@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import asyncio
+from email import header
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client import Client
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models import (
     DCVResponse,
@@ -25,11 +26,17 @@ from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.api.defau
 from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.types import Response
 from pprint import pp
 import pytest
+import json
 
 pytest_plugins = ("pytest_asyncio",)
 
 API_URL = "http://localhost:8000/mpic-coordinator"
+HEADERS = {}
 
+
+#API_URL = "https://c209g3oloe.execute-api.us-east-2.amazonaws.com/v1"
+
+#HEADERS = {"x-api-key": "osXp8ESghu6tP8qWi7xHA72fSTicjJ5e2W4pjmT7"}
 
 def parse_args():
     parser = argparse.ArgumentParser(prog="MPIC API Testing", description="Tests deployed MPIC API.")
@@ -44,7 +51,7 @@ class TestDeployedMpicApi:
 
     @pytest.mark.asyncio
     async def test_api_should_return_200_and_passed_corroboration_given_successful_caa_check(self):
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = CAAParams(domain_or_ip_target="example.com", check_type=CheckType.CAA)
             caa_response: Response[CAAResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
 
@@ -141,7 +148,7 @@ class TestDeployedMpicApi:
     async def test_api_should_return_is_valid_false_for_all_tests_in_do_not_issue_caa_test_suite(
         self, domain_or_ip_target, purpose_of_test, is_wildcard_domain
     ):
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
             if is_wildcard_domain:
                 domain_or_ip_target = "*." + domain_or_ip_target
@@ -179,7 +186,7 @@ class TestDeployedMpicApi:
     async def test_api_should_return_is_valid_true_for_valid_tests_in_caa_test_suite_when_caa_domain_is_caatestsuite_com(
         self, domain_or_ip_target, purpose_of_test, is_wildcard_domain
     ):
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
             if is_wildcard_domain:
                 domain_or_ip_target = "*." + domain_or_ip_target
@@ -211,7 +218,7 @@ class TestDeployedMpicApi:
     async def test_api_should_return_200_for_smime_tests(
         self, domain_or_ip_target, caa_domain_list, is_valid, purpose_of_test
     ):
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
             request = CAAParams(
                 domain_or_ip_target=domain_or_ip_target,
@@ -236,7 +243,7 @@ class TestDeployedMpicApi:
     @pytest.mark.asyncio
     async def test_api_should_return_200_given_valid_dns_01_validation(self, domain_or_ip_target, purpose_of_test):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -263,7 +270,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -288,7 +295,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, purpose_of_test, token, key_authorization
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -317,7 +324,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, purpose_of_test, token, key_authorization
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -336,7 +343,8 @@ class TestDeployedMpicApi:
     # fmt: off
     @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, http_token_path, challenge_value', [
         ('integration-testing.open-mpic.org', 'Valid website change v2 challenge', 'validation-doc.txt', 'test-validation'),
-        ('integration-testing.open-mpic.org', 'Valid 302 website change v2 challenge', 'validation-doc-redirect.txt', "test-validation-redirect")
+        ('integration-testing.open-mpic.org', 'Valid 302 website change v2 challenge', 'validation-doc-redirect.txt', "test-validation-redirect"),
+        ('integration-testing.open-mpic.org', 'Valid 302 website change v2 challenge after long redirect', 'validation-long-redirect.txt', "test-validation-long-redirect"),
     ])
     # fmt: on
     @pytest.mark.asyncio
@@ -344,7 +352,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, purpose_of_test, http_token_path, challenge_value
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -369,7 +377,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, purpose_of_test, http_token_path, challenge_value
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -397,7 +405,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, dns_record_type, challenge_value, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -424,7 +432,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, challenge_value, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -451,7 +459,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, challenge_value, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -479,7 +487,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, challenge_value, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -509,7 +517,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, challenge_value, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -541,7 +549,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, challenge_value, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -575,7 +583,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, challenge_value, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -609,7 +617,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, challenge_value, is_valid, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -646,7 +654,7 @@ class TestDeployedMpicApi:
         self, domain_or_ip_target, challenge_value, record_type: IpAddressValidationParametersDnsRecordType, is_valid, purpose_of_test
     ):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
-        async with Client(base_url=API_URL) as client:
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.DCV,
@@ -666,18 +674,23 @@ class TestDeployedMpicApi:
 async def main(args):
     print(f'Running basic test. Run "pytest" to run the full test file.')
     print(args.url)
-    client = Client(base_url=args.url)
+    client = Client(base_url=args.url, headers=HEADERS)
     async with client as client:
-        body = CAAParams(
+        body = DCVParams(
             domain_or_ip_target="example.com",
-            check_type=CheckType.CAA,
-            caa_check_parameters=CaaCheckParameters(certificate_type=CaaCheckParametersCertificateType.TLS_SERVER),
+            check_type=CheckType.DCV,
+            dcv_check_parameters=DNSChangeValidationParameters(
+                challenge_value="test",
+                validation_method=ValidationMethod.DNS_CHANGE,
+                dns_record_type=DNSChangeValidationParametersDnsRecordType.TXT
+            )
         )
-        caa_response: Response[CAAResponse] = await post_mpic.asyncio_detailed(client=client, body=body)
+        print(json.dumps(body.to_dict()))
+        response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=body)
 
-        print(caa_response.status_code)
+        print(response.status_code)
         # print(caa_response.content)
-        pp(caa_response.parsed)
+        pp(response.parsed)
 
 
 if __name__ == "__main__":
