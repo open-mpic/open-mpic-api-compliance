@@ -34,9 +34,10 @@ API_URL = "http://localhost:8000/mpic-coordinator"
 HEADERS = {}
 
 
-#API_URL = "https://c209g3oloe.execute-api.us-east-2.amazonaws.com/v1"
+#API_URL = "https://.execute-api.us-east-2.amazonaws.com/v1"
 
-#HEADERS = {"x-api-key": "osXp8ESghu6tP8qWi7xHA72fSTicjJ5e2W4pjmT7"}
+#HEADERS = {"x-api-key": ""}
+
 
 def parse_args():
     parser = argparse.ArgumentParser(prog="MPIC API Testing", description="Tests deployed MPIC API.")
@@ -156,6 +157,31 @@ class TestDeployedMpicApi:
                 domain_or_ip_target=domain_or_ip_target,
                 check_type=CheckType.CAA,
                 caa_check_parameters=CaaCheckParameters(caa_domains=["example.com"]),
+            )
+            caa_response: Response[CAAResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            assert caa_response.status_code == 200
+            assert caa_response.parsed.is_valid is False
+
+    # fmt: off
+    @pytest.mark.parametrize(
+        "domain_or_ip_target, purpose_of_test, is_wildcard_domain",
+        [
+            ("deny.basic.caatestsuite.com", "Tests handling of issue property for a wildcard domain [no CAA params]", True,),
+            ("deny-wild.basic.caatestsuite.com", "Tests handling of issuewild for a wildcard domain [no CAA params]", True,),
+        ],
+    )
+    # fmt: on
+    @pytest.mark.asyncio
+    async def test_api_should_return_appropriate_is_valid_false_for_all_wildcard_tests_in_caa_test_suite_without_caa_params(
+        self, domain_or_ip_target, purpose_of_test, is_wildcard_domain
+    ):
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
+            print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+            if is_wildcard_domain:
+                domain_or_ip_target = "*." + domain_or_ip_target
+            request = CAAParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.CAA,
             )
             caa_response: Response[CAAResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
             assert caa_response.status_code == 200
@@ -682,8 +708,8 @@ async def main(args):
             dcv_check_parameters=DNSChangeValidationParameters(
                 challenge_value="test",
                 validation_method=ValidationMethod.DNS_CHANGE,
-                dns_record_type=DNSChangeValidationParametersDnsRecordType.TXT
-            )
+                dns_record_type=DNSChangeValidationParametersDnsRecordType.TXT,
+            ),
         )
         print(json.dumps(body.to_dict()))
         response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=body)
