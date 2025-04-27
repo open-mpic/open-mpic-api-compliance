@@ -14,6 +14,7 @@ from open_multi_perspective_issuance_corroboration_ap_iv_2_spec_client.models im
     CaaCheckParametersCertificateType,
     AcmeDNS01ValidationParameters,
     AcmeHTTP01ValidationParameters,
+    AcmeTLSALPN01ValidationParameters,
     ValidationMethod,
     WebsiteChangeValidationParameters,
     DNSChangeValidationParameters,
@@ -34,8 +35,10 @@ API_URL = "http://localhost:8000/mpic-coordinator"
 HEADERS = {}
 
 
+# ./get_api_url.py in aws-lambda-python
 #API_URL = "https://.execute-api.us-east-2.amazonaws.com/v1"
 
+# ./get_api_key.py in aws-lambda-python
 #HEADERS = {"x-api-key": ""}
 
 
@@ -336,6 +339,35 @@ class TestDeployedMpicApi:
             assert response.status_code == 200
             #pp(response.content)
             assert response.parsed.is_valid is True
+
+    # fmt: off
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, key_authorization_hash', [
+        ('tls-alpn.integration-testing.open-mpic.org', 'Standard tls-alpn-01 test', "653471d42925d7eb4cd39a39cda8b34d3034c94cb90067ab78c8123560ba2e5f"),
+            ])
+    # fmt: on
+    @pytest.mark.asyncio
+    @pytest.mark.skip("Not implemented yet.")
+    async def test_api_should_return_200_given_valid_tls_alpn_01_validation(
+        self, domain_or_ip_target, purpose_of_test, key_authorization_hash
+    ):
+        print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
+        async with Client(base_url=API_URL, headers=HEADERS) as client:
+            request = DCVParams(
+                domain_or_ip_target=domain_or_ip_target,
+                check_type=CheckType.DCV,
+                dcv_check_parameters=AcmeTLSALPN01ValidationParameters(
+                    key_authorization_hash=key_authorization_hash,
+                    validation_method=ValidationMethod.ACME_TLS_ALPN_01
+                    )
+            )
+            pp(request.to_dict())
+            
+            response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
+            pp(response)
+            assert response.status_code == 200
+            #pp(response.content)
+            assert response.parsed.is_valid is True
+
 
     # fmt: off
     @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, token, key_authorization', [
