@@ -263,14 +263,14 @@ class TestDeployedMpicApi:
     
 
     # fmt: off
-    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test', [
-        ('dns-01.integration-testing.open-mpic.org', 'Standard proper dns-01 test'),
-        ('dns-01-multi.integration-testing.open-mpic.org', 'Proper dns-01 test with multiple TXT records'),
-        ('dns-01-cname.integration-testing.open-mpic.org', 'Proper dns-01 test with CNAME')
+    @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, cname_chain', [
+        ('dns-01.integration-testing.open-mpic.org', 'Standard proper dns-01 test', None),
+        ('dns-01-multi.integration-testing.open-mpic.org', 'Proper dns-01 test with multiple TXT records', None),
+        ('dns-01-cname.integration-testing.open-mpic.org', 'Proper dns-01 test with CNAME', ["dns-01-cname-landing.integration-testing.open-mpic.org."])
     ])
     # fmt: on
     @pytest.mark.asyncio
-    async def test_api_should_return_200_given_valid_dns_01_validation(self, domain_or_ip_target, purpose_of_test):
+    async def test_api_should_return_200_given_valid_dns_01_validation(self, domain_or_ip_target, purpose_of_test, cname_chain):
         print(f"Running test for {domain_or_ip_target} ({purpose_of_test})")
         async with Client(base_url=API_URL, headers=HEADERS) as client:
             request = DCVParams(
@@ -285,6 +285,8 @@ class TestDeployedMpicApi:
             response: Response[DCVResponse] = await post_mpic.asyncio_detailed(client=client, body=request)
             assert response.status_code == 200
             assert response.parsed.is_valid is True
+            if cname_chain is not None:
+                assert response.parsed.perspectives[0].check_response.details.cname_chain == cname_chain
     
     
     # fmt: off
