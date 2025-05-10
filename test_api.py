@@ -266,7 +266,8 @@ class TestDeployedMpicApi:
     @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, cname_chain', [
         ('dns-01.integration-testing.open-mpic.org', 'Standard proper dns-01 test', None),
         ('dns-01-multi.integration-testing.open-mpic.org', 'Proper dns-01 test with multiple TXT records', None),
-        ('dns-01-cname.integration-testing.open-mpic.org', 'Proper dns-01 test with CNAME', ["dns-01-cname-landing.integration-testing.open-mpic.org."])
+        ('dns-01-cname.integration-testing.open-mpic.org', 'Proper dns-01 test with CNAME', ["dns-01-cname-landing.integration-testing.open-mpic.org."]),
+        ('dns-01-cname-multi.integration-testing.open-mpic.org', 'Proper dns-01 test with many CNAMEs', ["dns-01-cname-target-1.integration-testing.open-mpic.org.", "dns-01-cname-target-2.integration-testing.open-mpic.org.", "dns-01-cname-target-3.integration-testing.open-mpic.org.", "dns-01-cname-landing.integration-testing.open-mpic.org."]),
     ])
     # fmt: on
     @pytest.mark.asyncio
