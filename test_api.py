@@ -346,10 +346,14 @@ class TestDeployedMpicApi:
     # fmt: off
     @pytest.mark.parametrize('domain_or_ip_target, purpose_of_test, key_authorization_hash', [
         ('tls-alpn.integration-testing.open-mpic.org', 'Standard tls-alpn-01 test', "653471d42925d7eb4cd39a39cda8b34d3034c94cb90067ab78c8123560ba2e5f"),
+        # The integration-testing.open-mpic.org endpoint is not routing via SNI so it currently only serves the TLS-ALPN-DNS cert.
+        # This test is thus disabled because the wrong cert is served. 
+        # open-mpic-integration-webroot/tls-alpn-integration-ip-server serves the target for this test.
+        #('140.82.1.140', 'IP address ALPN test', "653471d42925d7eb4cd39a39cda8b34d3034c94cb90067ab78c8123560ba2e5f"),
             ])
     # fmt: on
     @pytest.mark.asyncio
-    @pytest.mark.skip("Not implemented yet.")
+    #@pytest.mark.skip("Not implemented yet.")
     async def test_api_should_return_200_given_valid_tls_alpn_01_validation(
         self, domain_or_ip_target, purpose_of_test, key_authorization_hash
     ):
